@@ -84,11 +84,11 @@ SELECT * FROM Logs
 SELECT * FROM NotificationEmails
 
 --17. Withdraw Money
-CREATE OR ALTER PROC usp_WithdrawMoney(@AccountId INT, @MoneyAmount DECIMAL(15,4))
+CREATE OR ALTER PROC usp_WithdrawMoney(@accountId INT, @moneyAmount DECIMAL(15,4))
 AS 
 BEGIN TRANSACTION
-	DECLARE @account INT = (SELECT Id FROM Accounts WHERE Id = @AccountId)
-	DECLARE @accountBalance DECIMAL(15,4) = (SELECT Balance FROM Accounts WHERE Id = @AccountId)
+	DECLARE @account INT = (SELECT Id FROM Accounts WHERE Id = @accountId)
+	DECLARE @accountBalance DECIMAL(15,4) = (SELECT Balance FROM Accounts WHERE Id = @accountId)
 
 	IF(@account IS NULL)
 	BEGIN
@@ -97,14 +97,14 @@ BEGIN TRANSACTION
 		RETURN
 	END
 
-	IF(@accountBalance - @MoneyAmount < 0)
+	IF(@accountBalance - @moneyAmount < 0)
 	BEGIN 
 		ROLLBACK
 		RAISERROR('Insuffiecient funds.', 16, 2)
 		RETURN
 	END
 	
-	IF(@MoneyAmount < 0)
+	IF(@moneyAmount < 0)
 	BEGIN
 		ROLLBACK
 		RAISERROR('Negative amount.', 16, 3)
@@ -112,8 +112,8 @@ BEGIN TRANSACTION
 	END
 
 UPDATE Accounts
-SET Balance -= @MoneyAmount
-WHERE Id = @AccountId
+SET Balance -= @moneyAmount
+WHERE Id = @accountId
 
 COMMIT
 
@@ -124,13 +124,13 @@ SELECT * FROM Logs
 SELECT * FROM NotificationEmails
 
 --18. Money Transfer
-CREATE PROCEDURE usp_TransferMoney(@SenderId INT, @ReceiverId INT, @Amount DECIMAL(18,4))
+CREATE OR ALTER PROCEDURE usp_TransferMoney(@senderId INT, @receiverId INT, @amount DECIMAL(18,4))
 AS
 BEGIN TRANSACTION
-	DECLARE @sender INT = (SELECT Id FROM Accounts WHERE Id = @SenderId)
-	DECLARE @receiver INT = (SELECT Id FROM Accounts WHERE Id = @ReceiverId)
-	DECLARE @moneySender DECIMAL(18,4) (SELECT Balance FROM Accounts WHERE Id = @SenderId)
-	DECLARE @moneyReceiver DECIMAL(18,4) (SELECT Balance FROM Accounts WHERE Id = @ReceiverId)
+	DECLARE @sender INT = (SELECT Id FROM Accounts WHERE Id = @senderId)
+	DECLARE @receiver INT = (SELECT Id FROM Accounts WHERE Id = @receiverId)
+	DECLARE @moneySender DECIMAL(18,4) (SELECT Balance FROM Accounts WHERE Id = @senderId)
+	DECLARE @moneyReceiver DECIMAL(18,4) (SELECT Balance FROM Accounts WHERE Id = @receiverId)
 
 IF(@sender IS NULL OR @receiver IS NULL)
 BEGIN
@@ -139,14 +139,14 @@ RAISERROR('Sender Or Receiver cannot be null', 16, 1)
 RETURN
 END
 
-IF(@moneySender - @Amount) < 0
+IF(@moneySender - @amount) < 0
 BEGIN
 ROLLBACK
 RAISERROR('Insufficient balance', 16, 2)
 RETURN 
 END
 
-IF(@Amount <= 0)
+IF(@amount <= 0)
 BEGIN
 ROLLBACK
 RAISERROR('Amount cannot be 0 or less than zero.', 16, 3)
@@ -154,11 +154,11 @@ RETURN
 END
 
 UPDATE [Accounts]
-	SET [Balance] -= @Amount
+	SET [Balance] -= @amount
 	WHERE [Id] = @sender
 
 	UPDATE [Accounts]
-	SET [Balance] += @Amount
+	SET [Balance] += @amount
 	WHERE [Id] = @receiver
 
 COMMIT
@@ -168,12 +168,12 @@ SELECT * FROM Accounts WHERE Id = 1
 SELECT * FROM Accounts WHERE Id = 2
 
 --18. Money Transfer Second Solution
-CREATE PROC usp_TransferMoney1(@SenderId INT, @ReceiverId INT, @Amount Decimal(15,2))
+CREATE PROC usp_TransferMoney1(@senderId INT, @receiverId INT, @amount Decimal(15,2))
 AS
 BEGIN TRANSACTION
-	EXEC usp_WithdrawMoney @SenderId, @Amount
+	EXEC usp_WithdrawMoney @senderId, @amount
 
-	EXEC usp_DepositMoney @ReceiverId, @Amount
+	EXEC usp_DepositMoney @receiverId, @amount
 COMMIT
 
 EXEC usp_TransferMoney 2, 1, 10
